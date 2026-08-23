@@ -288,7 +288,7 @@ For the record, the headline claims from the Bun team's own [1.4 announcement](h
 memory**, **up to 50% faster startup on Linux** — and, of course, *rewrites Bun in Rust*.
 Under the hood, JavaScriptCore now shares one unified **mimalloc** heap with the rest of
 the runtime, extended with a background scavenger that frees memory while JavaScript
-idles (as covered in the [launch-week press](https://appwrite.io/blog/post/announcing-bun-1-4-runtime)).
+idles (as covered in the [launch-week press](https://medium.com/@onix_react/whats-new-in-bun-v1-4-c9f2d85923db)).
 The rewrite itself — ~535k lines of Zig ported to over a million lines of Rust in 11 days
 by a fleet of Claude Code agents — is its own saga; see the Bun team's
 ["Rewriting Bun in Rust"](https://bun.com/blog/bun-in-rust) and
