@@ -130,8 +130,33 @@ The **starter** is alive, hydration steady at *82%*.
         </div>
       </section>
 
+      <!-- Engine Room — Bun.Terminal -->
+      <section class="panel span-12" data-deck="engine-room">
+        <div class="panel-head">
+          <h2 class="deck-label">Engine Room</h2>
+          <span class="deck-note mono" data-note="engineRoom"></span>
+        </div>
+        <p class="panel-brief">
+          <code>Bun.Terminal</code> — a real PTY on the server, streamed raw over the shared WebSocket
+          into a hand-rolled VT100 grid. Full-screen crews (htop, vim) welcome aboard.
+        </p>
+        <div class="controls">
+          <button class="btn" id="ignite-btn">Ignite</button>
+          <button class="btn btn-ghost" id="term-zoom-btn" aria-pressed="false">◲ widen</button>
+          <span class="micro mono" id="engine-state" aria-live="polite">engines cold</span>
+        </div>
+        <div class="term-screen" id="term-screen" role="application"
+          aria-label="Engine Room terminal — an interactive shell; keystrokes go to the ship" tabindex="0"></div>
+        <p class="micro mono term-hint">click the screen to type — full-screen crews welcome (try htop or vim if they're aboard; q or F10 disembarks)</p>
+        <div class="term-input-row">
+          <span class="term-prompt mono" aria-hidden="true">›</span>
+          <input id="term-input" class="mono term-input" aria-label="Terminal input, press Enter to send"
+            placeholder="type a command, press Enter" autocomplete="off" spellcheck="false" disabled />
+        </div>
+      </section>
+
       <!-- Chronometer — Bun.cron -->
-      <section class="panel span-5" data-deck="chronometer">
+      <section class="panel span-4" data-deck="chronometer">
         <div class="panel-head">
           <h2 class="deck-label">Chronometer</h2>
           <span class="deck-note mono" data-note="chronometer"></span>
@@ -144,29 +169,8 @@ The **starter** is alive, hydration steady at *82%*.
         <div class="result" id="cron-out" aria-live="polite"></div>
       </section>
 
-      <!-- Engine Room — Bun.Terminal -->
-      <section class="panel span-7" data-deck="engine-room">
-        <div class="panel-head">
-          <h2 class="deck-label">Engine Room</h2>
-          <span class="deck-note mono" data-note="engineRoom"></span>
-        </div>
-        <p class="panel-brief">
-          <code>Bun.Terminal</code> — a real PTY on the server, streamed raw over the shared WebSocket.
-        </p>
-        <div class="controls">
-          <button class="btn" id="ignite-btn">Ignite</button>
-          <span class="micro mono" id="engine-state" aria-live="polite">engines cold</span>
-        </div>
-        <div class="term-screen" id="term-screen" role="log" aria-label="Engine terminal output" tabindex="0"></div>
-        <div class="term-input-row">
-          <span class="term-prompt mono" aria-hidden="true">›</span>
-          <input id="term-input" class="mono term-input" aria-label="Terminal input, press Enter to send"
-            placeholder="type a command, press Enter" autocomplete="off" spellcheck="false" disabled />
-        </div>
-      </section>
-
       <!-- Cargo Hold — Bun.Archive + data dialects -->
-      <section class="panel span-6" data-deck="cargo-hold">
+      <section class="panel span-4" data-deck="cargo-hold">
         <div class="panel-head">
           <h2 class="deck-label">Cargo Hold</h2>
           <span class="deck-note mono" data-note="cargoHold"></span>
@@ -182,7 +186,7 @@ The **starter** is alive, hydration steady at *82%*.
       </section>
 
       <!-- Reactor — throughput + startup race -->
-      <section class="panel span-6" data-deck="reactor">
+      <section class="panel span-4" data-deck="reactor">
         <div class="panel-head">
           <h2 class="deck-label">Reactor</h2>
           <span class="deck-note mono" data-note="reactor"></span>
@@ -201,7 +205,8 @@ The **starter** is alive, hydration steady at *82%*.
     </main>
 
     <footer class="deck-foot">
-      <p class="mono">Oven-1 flight deck · zero dependencies, zero build step — one HTML import, served by Bun.serve</p>
+      <p class="mono">Oven-1 flight deck · zero dependencies, zero build step — one HTML import, served by Bun.serve <a class="tea" href="/api/teapot">· tea?</a></p>
+      <p class="mono">second service, terminal-side: <code>bun run doctor</code> · <code>bridge</code> · <code>warp</code> · <code>pack</code> — the ship also compiles to one file</p>
     </footer>
   </body>
 </html>

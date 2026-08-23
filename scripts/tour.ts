@@ -19,12 +19,14 @@ const acts = [
   { emblem: "📦", name: "Cargo Hold", file: "demos/06-cargo-hold.ts" },
   { emblem: "☢️", name: "Reactor", file: "demos/07-reactor.ts" },
   { emblem: "🌀", name: "Hyperdrive", file: "demos/08-hyperdrive.ts" },
+  // The encore, from the second service: the ship's surgeon reads every vital.
+  { emblem: "🩺", name: "Ship's Surgeon", file: "scripts/doctor.ts" },
 ] as const;
 
 console.log();
 console.log(emblemBanner());
 console.log();
-console.log(dim(`   the grand tour · ${acts.length} decks · bun ${Bun.version} · departing now`));
+console.log(dim(`   the grand tour · ${acts.length} acts · bun ${Bun.version} · departing now`));
 
 const liftoff = performance.now();
 const log: { name: string; emblem: string; ms: number; code: number }[] = [];
@@ -70,8 +72,9 @@ for (const a of log) {
 console.log(gauge("full tour, wheels-stop", fmt.ms(totalMs), palette.flame));
 console.log();
 console.log(flawless.length === acts.length
-  ? ok(`all ${acts.length} decks performed — every number above measured on this pass`)
-  : warn(`${flawless.length} of ${acts.length} decks performed — the marked acts sat this one out`));
+  ? ok(`all ${acts.length} acts performed — every number above measured on this pass`)
+  : warn(`${flawless.length} of ${acts.length} acts performed — the marked acts sat this one out`));
 console.log();
 console.log(dim("  For the interactive show, run `bun start` — Mission Control on http://localhost:1414."));
+console.log(dim("  The second service waits in the wings: `bun run pack` · `bridge` · `warp` · `doctor`."));
 console.log();

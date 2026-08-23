@@ -212,9 +212,10 @@ body {
 .span-7 { grid-column: span 7; }
 .span-6 { grid-column: span 6; }
 .span-5 { grid-column: span 5; }
+.span-4 { grid-column: span 4; }
 
 @media (max-width: 980px) {
-  .span-7, .span-6, .span-5 { grid-column: span 12; }
+  .span-7, .span-6, .span-5, .span-4 { grid-column: span 12; }
 }
 
 .panel {
@@ -638,16 +639,38 @@ body {
 /* ---------- engine room ---------- */
 
 .term-screen {
+  position: relative;
   background: #05060a;
   border: 1px solid var(--line);
   border-radius: 10px;
-  height: 260px;
+  height: 560px;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 0.7rem 0.9rem;
   font-family: var(--mono);
   font-size: 0.78rem;
   line-height: 1.45;
   color: #cbd5e1;
+}
+
+/* focused mode — the whole viewport becomes engine room */
+[data-deck="engine-room"].focused .term-screen {
+  height: min(80vh, 920px);
+}
+
+/* clicking in to type deserves a visible ring, not just keyboard focus */
+.term-screen:focus {
+  outline: 2px solid var(--sky);
+  outline-offset: 2px;
+}
+
+/* alternate screen (htop, vim): the grid owns the glass — no scrollback peeking */
+.term-screen.alt {
+  overflow-y: hidden;
+}
+
+.term-screen.alt .t-backlog {
+  display: none;
 }
 
 .t-line {
@@ -659,6 +682,33 @@ body {
 .t-sys {
   color: var(--hull);
   font-style: italic;
+}
+
+/* one row of the VT grid — hard cells, no wrapping, no mercy */
+.t-row {
+  white-space: pre;
+  min-height: calc(1em * 1.45);
+  min-height: 1lh;
+}
+
+.t-probe {
+  position: absolute;
+  visibility: hidden;
+  white-space: pre;
+  pointer-events: none;
+}
+
+.t-caret {
+  animation: caret-blink 1.2s step-end infinite;
+}
+
+@keyframes caret-blink {
+  0%, 49% { filter: none; }
+  50%, 100% { filter: invert(1); }
+}
+
+.term-hint {
+  margin: 0.45rem 0 0;
 }
 
 .term-input-row {
@@ -865,6 +915,55 @@ body {
   color: var(--hull);
 }
 
+.deck-foot .tea {
+  color: var(--hull);
+  opacity: 0.45;
+  text-decoration: none;
+}
+
+.deck-foot .tea:hover,
+.deck-foot .tea:focus-visible {
+  opacity: 0.85;
+}
+
+/* ---------- konami: the bun rain ---------- */
+
+.bun-rain {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.bun-drop {
+  position: absolute;
+  top: -2.5rem;
+  animation: bun-fall linear both;
+}
+
+@keyframes bun-fall {
+  to {
+    transform: translateY(calc(100vh + 5rem)) rotate(300deg);
+  }
+}
+
+.bun-toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  pointer-events: none;
+  background: rgba(5, 6, 10, 0.92);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.5rem 1rem;
+  font-size: 0.78rem;
+  color: var(--star);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
 /* ---------- motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {
@@ -878,5 +977,14 @@ body {
   .bar-fill,
   .lane-fill {
     transition: none;
+  }
+  /* app.js never bakes a batch under reduced motion; this catches a
+     preference flipped mid-rain (the 8 s sweep still clears the tray). */
+  .bun-drop {
+    animation: none;
+  }
+  /* the engine room cursor holds steady instead of blinking */
+  .t-caret {
+    animation: none;
   }
 }

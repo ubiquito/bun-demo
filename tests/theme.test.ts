@@ -42,15 +42,15 @@ describe("fmt.bytes", () => {
     expect(fmt.bytes(1023)).toBe("1023 B");
   });
 
-  test("kilobytes with one decimal", () => {
-    expect(fmt.bytes(1024)).toBe("1.0 KB");
-    expect(fmt.bytes(1536)).toBe("1.5 KB");
-    expect(fmt.bytes(1024 ** 2 - 1)).toBe("1024.0 KB");
+  test("kibibytes with one decimal, honestly labeled", () => {
+    expect(fmt.bytes(1024)).toBe("1.0 KiB");
+    expect(fmt.bytes(1536)).toBe("1.5 KiB");
+    expect(fmt.bytes(1024 ** 2 - 1)).toBe("1024.0 KiB");
   });
 
-  test("megabytes with two decimals", () => {
-    expect(fmt.bytes(1024 ** 2)).toBe("1.00 MB");
-    expect(fmt.bytes(5.25 * 1024 ** 2)).toBe("5.25 MB");
+  test("mebibytes with two decimals, honestly labeled", () => {
+    expect(fmt.bytes(1024 ** 2)).toBe("1.00 MiB");
+    expect(fmt.bytes(5.25 * 1024 ** 2)).toBe("5.25 MiB");
   });
 });
 

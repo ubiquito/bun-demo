@@ -4,7 +4,12 @@
   "description": "Mission Control for Bun 1.4 — a zero-dependency flight deck that showcases every new engine on the ship",
   "type": "module",
   "license": "MIT",
-  "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ubiquito/bun-demo.git"
+  },
+  "homepage": "https://github.com/ubiquito/bun-demo#readme",
+  "bugs": "https://github.com/ubiquito/bun-demo/issues",
   "scripts": {
     "start": "bun src/server.ts",
     "dev": "bun --hot src/server.ts",
@@ -18,7 +23,11 @@
     "demo:reactor": "bun demos/07-reactor.ts",
     "demo:hyperdrive": "bun demos/08-hyperdrive.ts",
     "preflight": "bun test",
-    "preflight:parallel": "bun test --parallel"
+    "preflight:parallel": "bun test --parallel",
+    "doctor": "bun scripts/doctor.ts",
+    "bridge": "bun scripts/bridge.ts",
+    "warp": "bun scripts/warp.ts",
+    "pack": "bun scripts/pack.ts"
   },
   "devDependencies": {
     "bun-types": "^1.4.0"

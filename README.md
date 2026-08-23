@@ -19,7 +19,7 @@ bun start          # Mission Control on http://localhost:1414
 Three more ways to fly:
 
 ```sh
-bun run tour       # the Grand Tour: all eight decks, in order, in your terminal
+bun run tour       # the Grand Tour: all eight decks plus the ship's physical, in order
 bun test           # preflight checks (add --parallel for the full worker fan-out)
 bun demos/01-photon-oven.ts   # any single deck, standalone — no server needed
 ```
@@ -29,11 +29,13 @@ Or take the one-click gangway: open the repo in a **Dev Container / GitHub Codes
 official `oven/bun:1.4` image, installs a best-effort Chromium for the Observation Deck,
 and forwards port 1414. Then `bun start`.
 
-> **⚠️ Airlock advisory** — the Engine Room streams a **real interactive shell** to any
-> WebSocket client that reaches `/ws`. That's why the flight deck berths on
-> `127.0.0.1` only. Setting `HOST=0.0.0.0` (or any non-loopback address) opens the
-> outer airlock: anyone who can reach the port can run commands as you. Do that only
-> on a network you'd trust with your own terminal — never on the open internet.
+> **⚠️ Airlock advisory** — the Engine Room streams a **real interactive shell** over
+> `/ws`. Two locks guard it: the flight deck berths on `127.0.0.1` only, and `/ws`
+> accepts a **same-origin** upgrade solely (a cross-site page is refused `403`, so a
+> tab you visit while the ship is flying can't reach the shell). Setting `HOST=0.0.0.0`
+> (or any non-loopback address) still opens the outer airlock — anyone who can reach
+> the port can run commands as you — so do that only on a network you'd trust with your
+> own terminal, never on the open internet.
 
 ## The decks
 
@@ -273,8 +275,110 @@ console.log(gauge("all three at once", fmt.ms(par.ms), palette.flame));
 
 What to look for: the interleaved flight recorder (`demo:comms │ …` prefixes), and the
 demo's honesty when it loses — on a small suite it will tell you the worker spin-up cost
-more than the trip, and that the gain arrives with bigger cargo. Our 49-test suite ran
-green both ways (`bun test`: 49 pass across 8 files in ~0.9 s).
+more than the trip, and that the gain arrives with bigger cargo. Our 68-test suite ran
+green both ways (`bun test`: 66 pass, 2 skipped, across 10 files in ~1 s).
+
+---
+
+## The second service
+
+Five more systems shipped after the first QC pass — same hard rules, new engines
+(the contract lives in [FLIGHTPLAN § Second service](docs/FLIGHTPLAN.md#second-service-post-qc-additions)):
+
+| System | Bun 1.4 feature | Entry | Command |
+| --- | --- | --- | --- |
+| ⚒️ Shipwright | `bun build --compile` + `Bun.embeddedFiles` | [`scripts/pack.ts`](scripts/pack.ts) | `bun run pack` |
+| 🧭 Captain's Bridge | `node:repl` — a real implementation, new in 1.4 | [`scripts/bridge.ts`](scripts/bridge.ts) | `bun run bridge` |
+| 🌌 Warp Drive | `Bun.serve({ http3 })` — experimental HTTP/3 | [`scripts/warp.ts`](scripts/warp.ts) | `bun run warp` |
+| 🩺 Ship's Surgeon | readiness diagnostics for every deck | [`scripts/doctor.ts`](scripts/doctor.ts) | `bun run doctor` |
+| 🖼 Terminal postcard | WebView screenshot → Kitty graphics (`t=s` shmem) | [`src/lib/postcard.ts`](src/lib/postcard.ts) | auto, inside demo 02 |
+
+### ⚒️ Shipwright — the whole bakery, one file
+
+```sh
+bun run pack
+```
+
+`bun build --compile --minify` folds Mission Control — server, every deck engine, the
+dashboard's bundled HTML/CSS/JS, and the cargo manifests (embedded at build time via
+`import ... with { type: "text" }`) — into a single standalone executable at
+`.flight-data/shipwright/oven-1`. No Bun on the target machine, no `node_modules`, no
+source tree: copy the file, run the file.
+
+Then it proves the hull is airtight: `pack` cold-boots the binary from the gitignored
+yard, outside the source tree, and sweeps the dashboard's embedded frontend assets plus
+the `/api` routes — bake, render, cron windows, cargo audit, even a reactor burst — on
+embedded assets alone. On our dev container: **78.77 MiB** on disk (the Bun runtime
+rides inside), bundle + compile in **~0.3 s**, and **~40 ms** from cold boot to first
+`200 OK`. Honest smallprint: it compiles for the host triple only (no cross-compiling),
+the binary keeps its own `.flight-data/` pantry wherever it runs, and the Observation
+Deck inside the hull still wants a Chrome-family browser on the target — idling softly
+without one, as ever. `src/content/cargo/` stays the human-editable source of truth;
+the build simply bakes it in.
+
+### 🧭 Captain's Bridge — `node:repl`, real as of 1.4
+
+```sh
+bun run bridge                                 # take the conn
+printf 'status()\n.exit\n' | bun run bridge    # or script the watch
+```
+
+Bun 1.4 ships a real `node:repl` implementation, and the bridge flies all of it: every
+deck preloaded at the prompt — `status()`, `await bake()`, `renderAll()`,
+`windows("@daily")`, `await inspect()`, `await startupRace()` — with top-level `await`
+live, a `.decks` house command registered through the real `defineCommand` API, `.clear`
+restocking the console via the `reset` event, and history that survives the trip in
+`.flight-data/bridge.history`. `await burst()` aims at Mission Control itself, so run
+`bun start` in another window first — or the bridge tells you so, kindly. `.exit` (or
+Ctrl-D) docks with a farewell.
+
+### 🌌 Warp Drive — `Bun.serve({ http3: true })`
+
+```sh
+bun run warp          # demo burn: ignite, measure honestly, power down
+bun run warp --hold   # keep the drive humming for an h3-capable browser
+```
+
+The experimental QUIC coil, new in 1.4: one `Bun.serve` boots HTTP/1.1 over TCP *and*
+HTTP/3 over UDP on the same port (`https://127.0.0.1:14434`), and the demo burn proves
+both with a live `alt-svc: h3=":14434"` header read off the wire and a UDP-listener
+sighting — then states, precisely, that a *full* QUIC handshake needs an h3-capable
+client, and that `Bun.serve` speaks no HTTP/2 at all: the ship jumps straight from 1.1
+to 3, no intermediate warp factor. It wants `openssl` for a one-time self-signed cert
+(cached in `.flight-data/warp/`); without the forge it says so politely and exits 0.
+Under `--hold`, visit with an h3-capable browser and accept the self-signed cert.
+
+### 🩺 Ship's Surgeon — the pre-flight physical
+
+```sh
+bun run doctor
+```
+
+A sub-second physical of whatever machine the ship just landed on, eleven vitals in one
+sweep: bun version, hull (platform/arch), engine cores, Chrome-family glass (honors
+`BUN_CHROME_PATH`), the port-1414 runway (it recognizes an already-flying Oven-1 by her
+`x-ship` header), `openssl` for the warp forge, terminal color and inline-graphics
+support, free disk for `.flight-data/`, a rival `node` for the startup race, and `git`.
+Every finding except a pre-1.4 bun is advisory — a dim remedy line, verdict still
+*cleared for liftoff*, exit 0 — and the surgeon writes nothing to disk.
+
+### 🖼 Terminal postcards
+
+In a Kitty-graphics terminal (kitty, WezTerm, Konsole) demo 02 now ends by beaming its
+screenshot straight onto your glass through the protocol's shared-memory mode —
+`view.screenshot({ encoding: "shmem" })`, so the PNG never even crosses the pipe — while
+iTerm2 gets it inlined the OSC 1337 way and everywhere else receives the saved file
+path, like a postcard with the photo on backorder. `--no-postcard` skips the finale
+(handy when `TERM` claims kitty powers it doesn't actually have).
+
+### 🫖 The intrigue
+
+For observant crew: `GET /api/teapot` answers **418** in ship's registry, every dynamic
+response carries an `x-ship: Oven-1` mark (the dashboard's HTML-import route is the one
+unmarked hull), and the footer hides a very small invitation to tea. The dashboard also
+answers a classic incantation — arrows first, letters last — with a brief rain of fresh
+croissants, and when `prefers-reduced-motion` asks for calm, the ovens simply say thank
+you instead.
 
 ---
 
@@ -289,8 +393,7 @@ This ship draws a hard line between two kinds of numbers:
 - **Claimed in the release notes** — quoted as claims, labeled as such, never presented
   as local measurements.
 
-For the record, the headline claims from the Bun team's own [1.4 announcement](https://x.com/bunjavascript/status/2090443675063263738)
-([release notes](https://bun.com/blog/bun-v1.4)): fixes over 2,900 GitHub issues,
+For the record, the headline claims from the Bun team's own [1.4 release notes](https://bun.com/blog/bun-v1.4): fixes over 2,900 GitHub issues,
 +1,517 newly passing Node.js test-suite tests, **5× less idle CPU**, **up to 35% less
 memory**, **up to 50% faster startup on Linux** — and, of course, *rewrites Bun in Rust*.
 Under the hood, JavaScriptCore now shares one unified **mimalloc** heap with the rest of

@@ -46,7 +46,9 @@ describe.skipIf(!aboard)("flight deck (src/server.ts)", () => {
   test("boots, answers /api/status truthfully, and renders comms on request", async () => {
     const base = await liftOff();
 
-    const status = await (await fetch(`${base}/api/status`)).json();
+    const statusRes = await fetch(`${base}/api/status`);
+    expect(statusRes.headers.get("x-ship")).toBe("Oven-1"); // the registry mark rides every API response
+    const status = await statusRes.json();
     expect(status.ship).toBe("Oven-1");
     expect(status.mission).toBe("ORBITAL BAKERY");
     expect(status.bun.version).toBe(Bun.version);
@@ -74,5 +76,34 @@ describe.skipIf(!aboard)("flight deck (src/server.ts)", () => {
     expect(rendered.html).toContain("<strong>buns</strong>");
     expect(rendered.ansi).toContain("\x1b[");
     expect(rendered.custom.length).toBeGreaterThan(0);
+
+    // The intrigue: the teapot refuses in-theme, and even a lost route
+    // carries the registry mark on its 404.
+    const teapot = await fetch(`${base}/api/teapot`);
+    expect(teapot.status).toBe(418);
+    expect(teapot.headers.get("x-ship")).toBe("Oven-1");
+    expect((await teapot.json()).ship).toBe("Oven-1");
+
+    const lost = await fetch(`${base}/no/such/deck`);
+    expect(lost.status).toBe(404);
+    expect(lost.headers.get("x-ship")).toBe("Oven-1");
+
+    // A browser following the teapot's hint GETs a POST-only deck — it should
+    // find directions (405 + allow: POST + a runnable `try`), never the void.
+    const knocked = await fetch(`${base}/api/oven/bake`);
+    expect(knocked.status).toBe(405);
+    expect(knocked.headers.get("allow")).toBe("POST");
+    expect(knocked.headers.get("x-ship")).toBe("Oven-1");
+    const directions = (await knocked.json()) as { note: string; try: string };
+    expect(directions.note).toContain("POST");
+    expect(directions.try).toContain("curl -X POST");
+
+    // The airlock: /ws carries a live shell, so a cross-site Origin is refused
+    // (403) while a same-origin knock is not (426 — right door, no handshake).
+    const host = new URL(base).host;
+    const crossSite = await fetch(`${base}/ws`, { headers: { origin: "https://evil.example.com" } });
+    expect(crossSite.status).toBe(403);
+    const sameSite = await fetch(`${base}/ws`, { headers: { origin: `http://${host}` } });
+    expect(sameSite.status).not.toBe(403);
   }, 15_000);
 });

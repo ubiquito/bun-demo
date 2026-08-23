@@ -8,7 +8,12 @@
 const WIDTH = 1024;
 const HEIGHT = 640;
 const SEED = 0x140;
-export const NEBULA_PATH = new URL("./nebula.png", import.meta.url).pathname;
+// Inside a compiled oven-1 binary import.meta.url points into the read-only
+// bunfs, so the pantry moves to the flight recorder and the painter simply
+// repaints there — seeded, so it's the identical sky either way.
+export const NEBULA_PATH = Bun.isStandaloneExecutable
+  ? ".flight-data/pantry/nebula.png"
+  : new URL("./nebula.png", import.meta.url).pathname;
 
 // ── deterministic noise ─────────────────────────────────────────────────────
 

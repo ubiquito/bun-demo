@@ -28,7 +28,7 @@ No frameworks. No runtime dependencies. No build step. Just Bun.
 | Observation Deck     | `Bun.WebView` — headless browser in the runtime       | `src/systems/observation-deck.ts` | `demos/02-observation-deck.ts`|
 | Comms Bay            | `Bun.markdown` — html / ansi / custom renderers       | `src/systems/comms.ts`            | `demos/03-comms.ts`           |
 | Chronometer          | `Bun.cron` + `Bun.cron.parse`                         | `src/systems/chronometer.ts`      | `demos/04-chronometer.ts`     |
-| Engine Room          | `Bun.Terminal` — a real PTY, streamed to the browser  | `src/systems/engine-room.ts`      | `demos/05-engine-room.ts`     |
+| Engine Room          | `Bun.Terminal` — a real PTY, streamed into a hand-rolled VT grid (htop/vim welcome) | `src/systems/engine-room.ts`, `src/ui/app.js` | `demos/05-engine-room.ts` |
 | Cargo Hold           | `Bun.Archive` + JSON5/JSONC/JSONL/XML/YAML/TOML       | `src/systems/cargo-hold.ts`       | `demos/06-cargo-hold.ts`      |
 | Hyperdrive           | `bun run --parallel`, `bun test --parallel`           | `package.json` scripts            | `demos/08-hyperdrive.ts`      |
 | Grand Tour           | all of the above, in sequence, in the terminal        | `scripts/tour.ts`                 | `bun run tour`                |
@@ -75,11 +75,20 @@ client → `{type:"engine/write", data: string}`, `{type:"engine/start"}`,
 `{type:"engine/resize", cols, rows}`; server → `{type:"engine/data", data: string}`,
 `{type:"engine/exit", code}`. All other frames: `{type:"telemetry", ...TelemetryFrame}`.
 
+Wrong-method hits on POST-only routes answer **405**, in-theme, with an
+`Allow: POST` header and a runnable `try` example — a browser following the
+teapot's hint must find directions, never the 404 void.
+
+`/ws` accepts an upgrade only from a **same-origin** caller (its `Origin` host
+matches the request `Host`) or an origin-less client (curl, the demos); any
+other origin is refused **403**. The socket carries a live shell, so this
+closes cross-site WebSocket hijacking even on loopback.
+
 All shared shapes live in `src/types.ts` — the single source of truth.
 
-## File ownership (build phase)
+## Module boundaries
 
-Each builder owns its files exclusively; cross-module needs go through
+Each module owns its files exclusively; cross-module needs go through
 `src/types.ts` (frozen) and `src/lib/theme.ts` (frozen).
 
 ## Module contracts (frozen export signatures)
@@ -135,10 +144,32 @@ Environment: `BUN_CHROME_PATH` may point at a Chromium binary (Bun.WebView also
 searches `$PATH` and standard locations itself). `PORT` overrides 1414; `HOST`
 overrides the loopback-only bind (a deliberate act — see the API contract note).
 
-## Verification bar (QC phase)
+## Verification bar
 
 - `bun test` green (and `bun test --parallel` green).
 - Every `demos/*.ts` exits 0 in ≤ 60 s in a fresh container, with and without Chrome.
 - `bun start` boots; `/api/status` 200; dashboard renders; a `Bun.WebView` QC probe
   screenshots the live dashboard and asserts every deck panel is present.
 - Fresh-clone quickstart from the README works verbatim.
+
+## Second service (post-QC additions)
+
+| System            | Bun 1.4 feature                                  | Entry                | Command          |
+| ----------------- | ------------------------------------------------ | -------------------- | ---------------- |
+| Shipwright        | `bun build --compile` + `Bun.embeddedFiles`      | `scripts/pack.ts`    | `bun run pack`   |
+| Captain's Bridge  | `node:repl` (a real implementation, new in 1.4)  | `scripts/bridge.ts`  | `bun run bridge` |
+| Warp Drive        | `Bun.serve({ http3 })` — experimental HTTP/3     | `scripts/warp.ts`    | `bun run warp`   |
+| Ship's Surgeon    | readiness diagnostics for every deck             | `scripts/doctor.ts`  | `bun run doctor` |
+| Terminal postcard | WebView screenshot → Kitty graphics (`t=s` shmem)| inside `demos/02`    | (auto-detected)  |
+
+Intrigue (server): `GET /api/teapot` → 418, body in-theme; every API/JSON response
+(the 404 fallback included) carries `x-ship: Oven-1` — the dashboard's HTML import
+route is the one unmarked hull. Dashboard: Konami code (↑↑↓↓←→←→BA) rains buns; respects
+`prefers-reduced-motion`. Easter eggs never interfere with the main show.
+
+Rules unchanged: zero runtime deps, truthful numbers, graceful degradation
+(warp needs `openssl` for a self-signed cert and says so; postcards need a
+Kitty-protocol terminal and fall back to the saved file path; `pack` targets
+the host triple only). The compiled `oven-1` binary must serve the dashboard
+and every /api route from the gitignored yard, outside the source tree —
+embedded assets only, no source reads.

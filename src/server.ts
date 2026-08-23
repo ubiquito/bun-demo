@@ -56,6 +56,29 @@ function shipStatus(): StatusReport {
   };
 }
 
+/**
+ * True when a WebSocket upgrade is safe to accept: either it carries no Origin
+ * (a non-browser client — curl, the demo harnesses) or its Origin host matches
+ * the host the request actually reached. Browsers cannot spoof Origin, so this
+ * shuts out cross-site pages while leaving the dashboard and CLI clients free.
+ */
+function sameOrigin(req: Request): boolean {
+  const origin = req.headers.get("origin");
+  if (!origin) return true;
+  try {
+    return new URL(origin).host === req.headers.get("host");
+  } catch {
+    return false;
+  }
+}
+
+/** Every API transmission that leaves this vessel carries her registry mark
+ *  (the dashboard's HTML import route sails unmarked — see FLIGHTPLAN). */
+function withShipHeader(resp: Response): Response {
+  resp.headers.set("x-ship", "Oven-1");
+  return resp;
+}
+
 /** Count the request, run the handler, and keep failures on-board as JSON. */
 function guard<R extends { params: Record<string, string> } & Request>(
   handler: (req: R, server: Bun.Server<SocketData>) => Response | undefined | Promise<Response | undefined>,
@@ -63,10 +86,11 @@ function guard<R extends { params: Record<string, string> } & Request>(
   return async (req: R, server: Bun.Server<SocketData>): Promise<Response | undefined> => {
     requestsServed++;
     try {
-      return await handler(req, server);
+      const resp = await handler(req, server);
+      return resp && withShipHeader(resp);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      return Response.json({ error: `deck fault — ${message}` }, { status: 500 });
+      return withShipHeader(Response.json({ error: `deck fault — ${message}` }, { status: 500 }));
     }
   };
 }
@@ -86,21 +110,61 @@ async function serveAsset(dir: string, name: string, allowlist: RegExp): Promise
 
 const body = (req: Request) => req.json().catch(() => ({})) as Promise<Record<string, unknown>>;
 
+/**
+ * Browsers navigate with GET; these decks fire on POST. Answer the knock with
+ * directions instead of letting curious visitors fall into the 404 void —
+ * the teapot sends people here on purpose.
+ */
+const postOnly = (deck: string, hint: string, example: string) =>
+  guard(() =>
+    Response.json(
+      {
+        ship: "Oven-1",
+        note: `${deck} fires on POST, not GET. ${hint}`,
+        try: example,
+      },
+      { status: 405, headers: { allow: "POST" } },
+    ),
+  );
+
 const server = Bun.serve({
   hostname: HOSTNAME,
   port: PORT,
   routes: {
     "/": dashboard,
 
-    "/ws": guard((req, srv) =>
-      srv.upgrade(req, { data: { session: null } })
+    "/ws": guard((req, srv) => {
+      // The Engine Room rides this socket, so guard the airlock against
+      // cross-site WebSocket hijacking: a browser always stamps Origin, and a
+      // page on another site cannot forge it. Same-origin (the dashboard) and
+      // origin-less clients (curl, the demos) pass; anyone else is turned away.
+      if (!sameOrigin(req)) {
+        return Response.json({ error: "that hatch only opens from the flight deck" }, { status: 403 });
+      }
+      return srv.upgrade(req, { data: { session: null } })
         ? undefined
-        : new Response("this hatch only opens for WebSockets", { status: 426 }),
-    ),
+        : new Response("this hatch only opens for WebSockets", { status: 426 });
+    }),
 
     "/api/status": guard(() => Response.json(shipStatus())),
 
+    "/api/teapot": guard(() =>
+      Response.json(
+        {
+          ship: "Oven-1",
+          note: "I'm a teapot. We bake buns — press Bake on the flight deck, or POST to /api/oven/bake.",
+          try: `curl -X POST localhost:${PORT}/api/oven/bake -H 'content-type: application/json' -d '{"width":512}'`,
+        },
+        { status: 418 },
+      ),
+    ),
+
     "/api/oven/bake": {
+      GET: postOnly(
+        "The Photon Oven",
+        "Press Bake on the flight deck, or send it a width from the terminal.",
+        `curl -X POST localhost:${PORT}/api/oven/bake -H 'content-type: application/json' -d '{"width":512}'`,
+      ),
       POST: guard(async req => {
         const { width } = await body(req);
         return Response.json(await bake(typeof width === "number" ? width : undefined));
@@ -109,11 +173,13 @@ const server = Bun.serve({
     "/api/oven/asset/:name": guard(req => serveAsset(OVEN_DIR, req.params.name, OVEN_NAMES)),
 
     "/api/observation/snapshot": {
+      GET: postOnly("The Observation Deck", "Press Photograph the ship on the flight deck.", `curl -X POST localhost:${PORT}/api/observation/snapshot`),
       POST: guard(async (_req, srv) => Response.json(await snapshot(`http://localhost:${srv.port}`))),
     },
     "/api/observation/asset/:name": guard(req => serveAsset(OBS_DIR, req.params.name, OBS_NAMES)),
 
     "/api/comms/render": {
+      GET: postOnly("The Comms Bay", "Type in the markdown panel on the flight deck.", `curl -X POST localhost:${PORT}/api/comms/render -H 'content-type: application/json' -d '{"markdown":"# hello"}'`),
       POST: guard(async req => {
         const { markdown } = await body(req);
         if (typeof markdown !== "string") {
@@ -131,10 +197,12 @@ const server = Bun.serve({
     }),
 
     "/api/cargo/inspect": {
+      GET: postOnly("The Cargo Hold", "Press Inspect cargo on the flight deck.", `curl -X POST localhost:${PORT}/api/cargo/inspect`),
       POST: guard(async () => Response.json(await inspect())),
     },
 
     "/api/reactor/burst": {
+      GET: postOnly("The Reactor", "Press Burst on the flight deck — the ship benchmarks itself.", `curl -X POST localhost:${PORT}/api/reactor/burst -H 'content-type: application/json' -d '{"durationMs":2000}'`),
       POST: guard(async (req, srv) => {
         const { durationMs } = await body(req);
         // The cannon aims at our own /api/status — requestsServed will spike. That's the show.
@@ -144,15 +212,18 @@ const server = Bun.serve({
       }),
     },
     "/api/reactor/startup-race": {
+      GET: postOnly("The Reactor's drag strip", "Press Startup race on the flight deck.", `curl -X POST localhost:${PORT}/api/reactor/startup-race`),
       POST: guard(async () => Response.json(await startupRace())),
     },
   },
 
   fetch(req) {
     requestsServed++;
-    return Response.json(
-      { error: "lost in space — no such deck", path: new URL(req.url).pathname },
-      { status: 404 },
+    return withShipHeader(
+      Response.json(
+        { error: "lost in space — no such deck", path: new URL(req.url).pathname },
+        { status: 404 },
+      ),
     );
   },
 

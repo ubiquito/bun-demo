@@ -7,26 +7,36 @@
  */
 import type { CargoReport, DeckStatus } from "../types.ts";
 import { join } from "node:path";
+// The manifests ride inside the bundle as text embeds (the on-disk files in
+// src/content/cargo/ stay the human-readable source of truth) — so the same
+// hold works from a fresh clone *and* from inside a compiled oven-1 binary,
+// where import.meta.dir points into the read-only bunfs.
+import json5Text from "../content/cargo/manifest.json5" with { type: "text" };
+import jsoncText from "../content/cargo/manifest.jsonc" with { type: "text" };
+import jsonlText from "../content/cargo/events.jsonl" with { type: "text" };
+import xmlText from "../content/cargo/manifest.xml" with { type: "text" };
+import yamlText from "../content/cargo/manifest.yaml" with { type: "text" };
+import tomlText from "../content/cargo/manifest.toml" with { type: "text" };
 
-const CONTENT_DIR = join(import.meta.dir, "../content/cargo");
 const CARGO_DIR = ".flight-data/cargo";
 const ARCHIVE_NAME = "cargo.tar.gz";
 
 interface Bay {
   name: string;
   file: string;
+  text: string;
   parse: (text: string) => unknown;
   /** carries the core manifest object, so it joins the deepEquals consensus */
   core: boolean;
 }
 
 const bays: Bay[] = [
-  { name: "json5", file: "manifest.json5", parse: t => Bun.JSON5.parse(t), core: true },
-  { name: "jsonc", file: "manifest.jsonc", parse: t => Bun.JSONC.parse(t), core: true },
-  { name: "jsonl", file: "events.jsonl", parse: t => Bun.JSONL.parse(t), core: false },
-  { name: "xml", file: "manifest.xml", parse: t => Bun.XML.parse(t), core: false },
-  { name: "yaml", file: "manifest.yaml", parse: t => Bun.YAML.parse(t), core: true },
-  { name: "toml", file: "manifest.toml", parse: t => Bun.TOML.parse(t), core: true },
+  { name: "json5", file: "manifest.json5", text: json5Text, parse: t => Bun.JSON5.parse(t), core: true },
+  { name: "jsonc", file: "manifest.jsonc", text: jsoncText, parse: t => Bun.JSONC.parse(t), core: true },
+  { name: "jsonl", file: "events.jsonl", text: jsonlText, parse: t => Bun.JSONL.parse(t), core: false },
+  { name: "xml", file: "manifest.xml", text: xmlText, parse: t => Bun.XML.parse(t), core: false },
+  { name: "yaml", file: "manifest.yaml", text: yamlText, parse: t => Bun.YAML.parse(t), core: true },
+  { name: "toml", file: "manifest.toml", text: tomlText, parse: t => Bun.TOML.parse(t), core: true },
 ];
 
 export function cargoStatus(): DeckStatus {
@@ -55,8 +65,7 @@ function preview(value: unknown): string {
  * agreed with the others under Bun.deepEquals(strict).
  */
 export async function inspect(): Promise<CargoReport> {
-  const sources = new Map<string, string>();
-  for (const bay of bays) sources.set(bay.file, await Bun.file(join(CONTENT_DIR, bay.file)).text());
+  const sources = new Map<string, string>(bays.map(bay => [bay.file, bay.text]));
 
   const parsed = new Map<string, unknown>();
   const dialects = bays.map(bay => {

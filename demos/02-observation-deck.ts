@@ -3,7 +3,9 @@
  * dependencies. No server needed: the whole page ships as a data: URL.
  */
 
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
+import { detectCarrier, itermInlineEscape, kittyShmemEscape } from "../src/lib/postcard";
 import { deck, dim, fail, fmt, gauge, ok, palette, warn } from "../src/lib/theme";
 import { OBS_DIR, observationStatus, viewBackend } from "../src/systems/observation-deck";
 
@@ -107,6 +109,48 @@ try {
   console.log(
     dim("  Browser automation — trusted input, page evals, screenshots — with zero dependencies to install."),
   );
+
+  // ── Finale: the terminal postcard ─────────────────────────────────────────
+  // Default is the graceful path (name the saved file); the escape-byte paths
+  // switch on only when detection says the terminal can actually show pixels.
+  console.log();
+  const carrier = process.argv.includes("--no-postcard")
+    ? ({ protocol: "none" } as const)
+    : detectCarrier();
+
+  if (carrier.protocol === "kitty") {
+    // Request shmem only now, after detection said kitty: the segment
+    // exists solely for the terminal on the other end of this pipe.
+    const shm = await view.screenshot({ encoding: "shmem" });
+    process.stdout.write(kittyShmemEscape(shm.name, shm.size) + "\n");
+    console.log(ok(`postcard beamed onto your glass via Kitty graphics (${carrier.via})`));
+    console.log(
+      dim(`  ${fmt.bytes(shm.size)} of PNG handed over in shared memory (${shm.name}) —`),
+    );
+    console.log(
+      dim("  zero copies through the pipe; once it's read, the segment is swept."),
+    );
+    // A real kitty shm_opens the name and unlinks it as it parses the escape.
+    // But env vars are hearsay — TERM=xterm-kitty forwarded over ssh, set by
+    // hand, or leaked into CI names a terminal that will never read the
+    // segment, and nobody else would unlink it. So we own the sweep: give
+    // the glass a beat to claim it, then unlink the name ourselves. On Linux
+    // the segment lives under /dev/shm; unlink-after-open never disturbs a
+    // reader, and it's a no-op where kitty already swept.
+    await Bun.sleep(300);
+    await rm(join("/dev/shm", shm.name), { force: true }).catch(() => {});
+  } else if (carrier.protocol === "iterm2") {
+    const b64 = await view.screenshot({ encoding: "base64" });
+    process.stdout.write(itermInlineEscape(b64) + "\n");
+    console.log(ok("postcard beamed onto your glass — iTerm2 inline image (OSC 1337)"));
+  } else {
+    console.log(dim(`  postcard saved — open it planet-side: ${target}`));
+    console.log(
+      dim(
+        "  (kitty, WezTerm, Konsole, or iTerm2 would show it right here; --no-postcard skips the check)",
+      ),
+    );
+  }
 } catch (err) {
   console.log(fail(`the observation window fogged up: ${err instanceof Error ? err.message : err}`));
   process.exit(1);
