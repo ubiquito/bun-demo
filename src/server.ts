@@ -17,6 +17,10 @@ import { burst, reactorStatus, startupRace } from "./systems/reactor.ts";
 import { startTelemetry } from "./telemetry.ts";
 
 const PORT = Number(process.env.PORT) || 1414;
+// The Engine Room hands every /ws passenger a real shell, so the flight deck
+// berths on loopback. Opening the outer airlock (HOST=0.0.0.0) is a deliberate
+// act — only on a network you'd trust with your own terminal.
+const HOSTNAME = process.env.HOST || "127.0.0.1";
 const startedAt = Date.now();
 let requestsServed = 0;
 
@@ -25,7 +29,7 @@ type SocketData = { session: EngineSession | null };
 
 // Only names the decks actually mint may leave the ship — no paths, no traversal.
 const OVEN_NAMES = /^nebula(?:-\d{1,4}(?:-(?:mks2013|glazed|palette|avif-fallback))?)?\.(?:png|webp|jpg|avif)$/;
-const OBS_NAMES = /^snapshot-\d{10,16}\.png$/;
+const OBS_NAMES = /^snapshot-\d{10,16}-\d{1,6}\.png$/;
 const IMAGE_TYPES: Record<string, string> = {
   png: "image/png",
   webp: "image/webp",
@@ -83,6 +87,7 @@ async function serveAsset(dir: string, name: string, allowlist: RegExp): Promise
 const body = (req: Request) => req.json().catch(() => ({})) as Promise<Record<string, unknown>>;
 
 const server = Bun.serve({
+  hostname: HOSTNAME,
   port: PORT,
   routes: {
     "/": dashboard,
@@ -176,6 +181,11 @@ const server = Bun.serve({
   },
 });
 
+// Under `bun --hot` this module re-evaluates on every reload; stop the previous
+// heartbeat first or each reload would stack another interval (same pattern as
+// the chronometer's job registry).
+const TELEMETRY_KEY = Symbol.for("oven1.telemetry.stop");
+(globalThis as any)[TELEMETRY_KEY]?.();
 const stopTelemetry = startTelemetry({
   getServerCounts: () => ({
     pendingRequests: server.pendingRequests,
@@ -184,6 +194,7 @@ const stopTelemetry = startTelemetry({
   getRequestsServed: () => requestsServed,
   publish: frame => server.publish("telemetry", JSON.stringify(frame)),
 });
+(globalThis as any)[TELEMETRY_KEY] = stopTelemetry;
 
 startShipJobs(job => {
   console.log(dim(`  ⏲ chronometer — ${job} fired at ${new Date().toLocaleTimeString()}`));
@@ -204,6 +215,9 @@ const decks = shipStatus().decks;
 const online = Object.values(decks).filter(d => d.online).length;
 console.log("  " + ok(`flight deck open — ${bold(paint(palette.sky, String(server.url)))}`));
 console.log("  " + ok(`telemetry publishing to /ws every 500 ms — ${online}/7 decks online`));
+if (!["127.0.0.1", "localhost", "::1"].includes(HOSTNAME)) {
+  console.log("  " + warn(`outer airlock open — bound to ${HOSTNAME}, and /ws carries a live shell. Untrusted networks stay outside.`));
+}
 for (const [name, status] of Object.entries(decks)) {
   if (!status.online) console.log("  " + warn(`${name} idle — ${status.note}`));
 }

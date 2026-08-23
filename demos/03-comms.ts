@@ -20,7 +20,16 @@ await beat();
 console.log();
 console.log(dim("  ── channel 1 · Bun.markdown.ansi — the built-in terminal pass ──"));
 console.log();
-console.log(report.ansi);
+if (Bun.enableANSIColors) {
+  console.log(report.ansi);
+} else {
+  // Piped or captured output gets the same pass with the paint stripped —
+  // escape codes are for terminals, not log files. (The timing below still
+  // measures the full ANSI render; only the display degrades.)
+  console.log("     (ansi pass shown unpainted — run on a live terminal for the full colors)");
+  console.log();
+  console.log(Bun.stripANSI(report.ansi));
+}
 
 await beat();
 console.log(dim("  ── channel 2 · Bun.markdown.render — the same log, re-keyed as a transcript ──"));

@@ -6,7 +6,9 @@
  */
 import { bold, deck, dim, fail, fmt, gauge, ok, paint, palette, prose, rule, warn } from "../src/lib/theme.ts";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+import { join } from "node:path";
+
+const ROOT = join(import.meta.dir, "..");
 
 interface Run {
   ms: number;
@@ -17,13 +19,19 @@ interface Run {
 async function timed(cmd: string[]): Promise<Run> {
   const t0 = performance.now();
   const proc = Bun.spawn({ cmd, cwd: ROOT, stdout: "pipe", stderr: "pipe", env: process.env });
-  const [out, err, code] = await Promise.all([proc.stdout.text(), proc.stderr.text(), proc.exited]);
+  // Drain the pipes via Response — same trick as the Engine Room, and the
+  // type-checker knows this route (the pinned bun-types predate stream.text()).
+  const [out, err, code] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]);
   return { ms: performance.now() - t0, code, text: out + err };
 }
 
 console.log(deck("🌀", "Hyperdrive", "bun run --parallel + bun test --parallel — the whole fleet, every engine at once"));
 
-const probe = await timed(["bun", "run", "--help"]);
+const probe = await timed([process.execPath, "run", "--help"]);
 if (!probe.text.includes("--parallel")) {
   console.log(warn("no hyperdrive coils on this hull — `bun run --parallel` ships with Bun 1.4"));
   console.log(dim("  Upgrade the reactor (bun upgrade) and the jump drive comes online."));
@@ -37,12 +45,12 @@ console.log();
 console.log(dim(`  ── convoy run · three demos, one command, two schedulers ──`));
 console.log();
 console.log(dim(`  $ bun run --sequential ${convoy.join(" ")}`));
-const seq = await timed(["bun", "run", "--sequential", ...convoy]);
+const seq = await timed([process.execPath, "run", "--sequential", ...convoy]);
 console.log(gauge("one engine at a time", fmt.ms(seq.ms), palette.sky));
 
 console.log();
 console.log(dim(`  $ bun run --parallel ${convoy.join(" ")}`));
-const par = await timed(["bun", "run", "--parallel", ...convoy]);
+const par = await timed([process.execPath, "run", "--parallel", ...convoy]);
 console.log(gauge("all three at once", fmt.ms(par.ms), palette.flame));
 
 const bothOk = seq.code === 0 && par.code === 0;
@@ -91,13 +99,13 @@ function suite(run: Run): { summary: string; workers?: string } {
 }
 
 console.log(dim("  $ bun test"));
-const serial = await timed(["bun", "test"]);
+const serial = await timed([process.execPath, "test"]);
 const serialInfo = suite(serial);
 console.log(gauge(`single lane — ${serialInfo.summary}`, fmt.ms(serial.ms), palette.sky));
 
 console.log();
 console.log(dim("  $ bun test --parallel"));
-const parallel = await timed(["bun", "test", "--parallel"]);
+const parallel = await timed([process.execPath, "test", "--parallel"]);
 const parallelInfo = suite(parallel);
 console.log(gauge(
   `${parallelInfo.workers ?? "?"} worker processes — ${parallelInfo.summary}`,

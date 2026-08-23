@@ -50,7 +50,9 @@ No frameworks. No runtime dependencies. No build step. Just Bun.
 
 ## API contract (server ⇄ UI)
 
-Server listens on `PORT` env or **1414**. Routes (all JSON unless noted):
+Server listens on `PORT` env or **1414**, bound to `HOST` env or **127.0.0.1** —
+loopback by default, because `/ws` carries a live Engine Room shell and must never
+face an untrusted network. Routes (all JSON unless noted):
 
 | Route                          | Method | Body / params                | Returns |
 | ------------------------------ | ------ | ---------------------------- | ------- |
@@ -130,7 +132,8 @@ export function startTelemetry(opts: {
 ```
 
 Environment: `BUN_CHROME_PATH` may point at a Chromium binary (Bun.WebView also
-searches `$PATH` and standard locations itself). `PORT` overrides 1414.
+searches `$PATH` and standard locations itself). `PORT` overrides 1414; `HOST`
+overrides the loopback-only bind (a deliberate act — see the API contract note).
 
 ## Verification bar (QC phase)
 

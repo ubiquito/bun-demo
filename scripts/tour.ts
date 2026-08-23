@@ -6,7 +6,9 @@
  */
 import { bold, dim, emblemBanner, fmt, gauge, ok, paint, palette, rule, warn } from "../src/lib/theme.ts";
 
-const ROOT = new URL("..", import.meta.url).pathname;
+import { join } from "node:path";
+
+const ROOT = join(import.meta.dir, "..");
 
 const acts = [
   { emblem: "🥐", name: "Photon Oven", file: "demos/01-photon-oven.ts" },
@@ -37,7 +39,7 @@ for (const [i, act] of acts.entries()) {
 
   const t0 = performance.now();
   const code = await Bun.spawn({
-    cmd: ["bun", act.file],
+    cmd: [process.execPath, act.file],
     cwd: ROOT,
     stdio: ["inherit", "inherit", "inherit"],
   }).exited;

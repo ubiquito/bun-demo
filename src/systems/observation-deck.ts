@@ -32,6 +32,19 @@ function installCandidates(): string[] {
     const app = "Google Chrome.app/Contents/MacOS/Google Chrome";
     return [join("/Applications", app), join(homedir(), "Applications", app)];
   }
+  if (process.platform === "win32") {
+    // Bun checks the Application\*.exe directories under the three install roots.
+    const roots = [process.env.ProgramFiles, process.env["ProgramFiles(x86)"], process.env.LOCALAPPDATA];
+    const apps = [
+      ["Google", "Chrome", "Application", "chrome.exe"],
+      ["Chromium", "Application", "chrome.exe"],
+      ["BraveSoftware", "Brave-Browser", "Application", "brave.exe"],
+      ["Microsoft", "Edge", "Application", "msedge.exe"],
+    ];
+    return roots
+      .filter((root): root is string => !!root)
+      .flatMap(root => apps.map(app => join(root, ...app)));
+  }
   return PATH_CANDIDATES.map(name => join("/usr/bin", name)).concat("/snap/bin/chromium");
 }
 
@@ -93,6 +106,15 @@ export function observationStatus(): DeckStatus {
     : { online: false, note: "no Chrome-family browser aboard — the Observation Deck idles" };
 }
 
+/** Two shutter clicks in the same millisecond must not develop onto one plate. */
+let mintSerial = 0;
+
+/**
+ * The truth lives in the PNG header, not the request: Bun 1.4.0's Chrome
+ * backend develops captures ~87px shorter than the asked-for viewport
+ * (1280×800 → 1280×713) — a runtime quirk, not ours to hide. Truthful
+ * telemetry: we caption what the camera actually took.
+ */
 function pngDimensions(png: Buffer, fallbackW: number, fallbackH: number) {
   const isPng = png.length > 24 && png.readUInt32BE(0) === 0x89504e47;
   return isPng
@@ -125,13 +147,15 @@ export async function snapshot(targetUrl: string): Promise<SnapshotReport> {
     const shot = await view.screenshot({ encoding: "buffer" });
     const screenshotMs = performance.now() - s0;
 
-    const name = `snapshot-${Date.now()}.png`;
+    const name = `snapshot-${Date.now()}-${++mintSerial}.png`;
     await Bun.write(join(OBS_DIR, name), shot);
 
     return {
       ok: true,
       url: targetUrl,
-      title: view.title || evaluated.title,
+      // evaluate() round-trips unicode faithfully; view.title (Bun 1.4.0) hands
+      // back the raw JSON-escaped string, so it rides along as fallback only.
+      title: evaluated.title || view.title,
       backend: process.platform === "darwin" ? "webkit" : "chrome",
       asset: { name, bytes: shot.byteLength, ...pngDimensions(shot, 1280, 800) },
       timings: { spawnMs, navigateMs, screenshotMs, totalMs: performance.now() - t0 },

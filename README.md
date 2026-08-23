@@ -29,6 +29,12 @@ Or take the one-click gangway: open the repo in a **Dev Container / GitHub Codes
 official `oven/bun:1.4` image, installs a best-effort Chromium for the Observation Deck,
 and forwards port 1414. Then `bun start`.
 
+> **⚠️ Airlock advisory** — the Engine Room streams a **real interactive shell** to any
+> WebSocket client that reaches `/ws`. That's why the flight deck berths on
+> `127.0.0.1` only. Setting `HOST=0.0.0.0` (or any non-loopback address) opens the
+> outer airlock: anyone who can reach the port can run commands as you. Do that only
+> on a network you'd trust with your own terminal — never on the open internet.
+
 ## The decks
 
 | Deck | Bun 1.4 feature | Module | Standalone demo |
@@ -202,7 +208,8 @@ spawns, then wires the exact session the flight deck streams to the browser:
 
 What to look for: the shell greets you with a custom `oven-1:` prompt, does live arithmetic,
 and exits cleanly — raw PTY bytes out as base64 envelopes, keystrokes back in. On the
-flight deck the same session powers an interactive terminal in your browser tab.
+flight deck the same session powers an interactive terminal in your browser tab — and is
+the reason the server binds `127.0.0.1` only (see the airlock advisory up top).
 
 ### 📦 Cargo Hold — `Bun.Archive` + six parsers
 
@@ -299,6 +306,9 @@ you: throughput, latency, startup, render rates, encode times, and the reactor's
 
 ![Mission Control](docs/flight-deck.png)
 
+*The flight deck, photographed by the ship herself — `Bun.WebView` pointing the camera at
+`Bun.serve`, no third-party crew involved.*
+
 ## Requirements & graceful degradation
 
 - **Bun ≥ 1.4.0** — that's the whole requirements list. Zero runtime dependencies; the
@@ -306,7 +316,10 @@ you: throughput, latency, startup, render rates, encode times, and the reactor's
 - **Observation Deck** wants a Chrome-family browser (Chrome, Chromium, Edge, Brave — or
   `BUN_CHROME_PATH` pointed at one); on macOS it uses the system WKWebView and needs
   nothing at all. Without a browser the deck idles with a friendly note and every other
-  deck flies on.
+  deck flies on. One lens quirk: the Chrome backend (Bun 1.4.0) develops captures ~87 px
+  shorter than the requested viewport — a 1280×800 view yields a 1280×713 PNG, and the
+  flight-deck photo above is 1440×873 for the same reason. The deck reads the true
+  dimensions off the PNG header and captions those, never the request.
 - **AVIF/HEIC encoding** rides the OS codec (macOS 13+ on Apple Silicon M3+, Windows with
   the AV1 extension). On Linux the Photon Oven demonstrates the documented
   `ERR_IMAGE_FORMAT_UNSUPPORTED` → WebP fallback instead — deliberately.
@@ -320,6 +333,7 @@ you: throughput, latency, startup, render rates, encode times, and the reactor's
 - Launch video: ["Bun v1.4"](https://www.youtube.com/watch?v=i38DgEuaJwM) on the Bun channel
 - The rewrite story: [bun.com/blog/bun-in-rust](https://bun.com/blog/bun-in-rust)
 - The design contract for this repo: [docs/FLIGHTPLAN.md](docs/FLIGHTPLAN.md)
+- Cargo manifest: [MIT licensed](LICENSE) — take the recipes, bake your own buns
 
 The Oven-1 is fueled, proofed, and holding at T-minus one command. Come aboard, run the
 tour, and read your own dials — that's the whole point of the ship.

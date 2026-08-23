@@ -47,6 +47,9 @@ jobs:
       - name: "Deck 07 — Reactor"
         run: timeout 90 bun demos/07-reactor.ts
 
+      - name: "Deck 08 — Hyperdrive"
+        run: timeout 90 bun demos/08-hyperdrive.ts
+
       # ubuntu-latest ships google-chrome on PATH and Bun.WebView discovers it,
       # but headless Chrome in CI can hiccup for reasons outside our hull —
       # so this one deck is advisory: it runs, it reports, it cannot scrub launch.

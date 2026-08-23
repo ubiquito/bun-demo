@@ -17,6 +17,7 @@ const fmt = {
   us: n => (n < 1000 ? `${n.toFixed(1)} µs` : fmt.ms(n / 1000)),
   bytes: n => (n < 1024 ? `${n} B` : n < 1048576 ? `${(n / 1024).toFixed(1)} KB` : `${(n / 1048576).toFixed(2)} MB`),
   int: n => Math.round(n).toLocaleString("en-US"),
+  count: (n, noun) => `${n} ${noun}${n === 1 ? "" : "s"}`,
   clock: s => {
     const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = Math.floor(s % 60);
     return [h, m, sec].map(v => String(v).padStart(2, "0")).join(":");
@@ -158,6 +159,31 @@ function renderAnsi(text) {
   }
   emit(text.slice(last));
   return frag;
+}
+
+// ---------- markdown airlock ----------
+// Bun.markdown.html is faithful to CommonMark: raw HTML in the source passes
+// straight through. The Comms Bay textarea is live user input, so everything
+// coming back from the renderer clears decontamination before touching the DOM —
+// no script-capable elements, no on* handlers, no javascript: hatches.
+
+const QUARANTINED = /^(?:script|style|iframe|object|embed|link|meta|base|form)$/;
+const URL_ATTRS = new Set(["href", "src", "xlink:href", "action", "formaction"]);
+const BAD_SCHEME = /^(?:javascript|vbscript|data):/i;
+
+function sanitizeHtml(html) {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  for (const node of [...doc.querySelectorAll("*")]) {
+    if (QUARANTINED.test(node.localName)) { node.remove(); continue; }
+    for (const attr of [...node.attributes]) {
+      const name = attr.name.toLowerCase();
+      const scheme = attr.value.replace(/[\u0000-\u0020]/g, ""); // browsers ignore control chars in schemes; so do we
+      if (name.startsWith("on") || (URL_ATTRS.has(name) && BAD_SCHEME.test(scheme))) {
+        node.removeAttribute(attr.name);
+      }
+    }
+  }
+  return [...doc.body.childNodes];
 }
 
 // ---------- sparklines ----------
@@ -302,7 +328,7 @@ function init() {
       reads.rps.value = rps < 10 ? rps.toFixed(1) : fmt.int(rps);
     }
     lastFrame = f;
-    pendings.textContent = `pending — ${f.pendingRequests} requests · ${f.pendingWebSockets} websockets`;
+    pendings.textContent = `pending — ${fmt.count(f.pendingRequests, "request")} · ${fmt.count(f.pendingWebSockets, "websocket")}`;
   };
 
   // -- engine room terminal --
@@ -464,8 +490,9 @@ function init() {
   const renderComms = async () => {
     try {
       const rep = await postJSON("/api/comms/render", { markdown: commsSrc.value });
-      // Our own server rendering our own markdown — direct injection is the honest path here.
-      commsHtml.innerHTML = rep.html;
+      // Our own server, but not only our own markdown — the textarea is
+      // anyone's pen, so the transmission goes through the airlock first.
+      commsHtml.replaceChildren(...sanitizeHtml(rep.html));
       commsAnsi.replaceChildren(renderAnsi(rep.ansi));
       commsHtmlUs.textContent = `Bun.markdown.html · ${fmt.us(rep.timings.htmlUs)} for ${fmt.int(rep.chars)} chars`;
       commsAnsiUs.textContent = `Bun.markdown.ansi · ${fmt.us(rep.timings.ansiUs)}`;
