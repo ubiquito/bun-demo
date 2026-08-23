@@ -1,0 +1,45 @@
+# ── CARGO MANIFEST · hold C · Oven-1 ─────────────────────────────
+# TOML: the quartermaster's ledger. Typed scalars, readable
+# underscores, and an [[array of tables]] made for cargo rows.
+vessel = "Oven-1"
+hold = "C"
+revision = 3
+buns = 1_400_000        # underscores keep the zeros honest
+beaconChannel = 0x2A
+destinations = ["Luna Colony", "Ceres Relay", "Europa Station"]
+
+[bake]
+temperatureC = 220
+minutes = 14
+
+[[stores]]
+id = "FLR-001"
+item = "stone-ground flour"
+kg = 1200.5
+rack = "A1"
+perishable = false
+seal = { vacuum = false, tempC = 18 }
+
+[[stores]]
+id = "YST-042"
+item = "starlight yeast"
+kg = 4.2
+rack = "B2"
+perishable = true
+seal = { vacuum = true, tempC = 4 }
+
+[[stores]]
+id = "CIN-007"
+item = "ceres cinnamon"
+kg = 36
+rack = "B4"
+perishable = false
+seal = { vacuum = false, tempC = 18 }
+
+[[stores]]
+id = "GLZ-019"
+item = "strawberry glaze"
+kg = 88.8
+rack = "C1"
+perishable = true
+seal = { vacuum = true, tempC = 4 }

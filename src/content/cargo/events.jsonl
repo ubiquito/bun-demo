@@ -1,0 +1,7 @@
+{"t":"2026-08-23T05:58:00Z","event":"hold-pressurized","hold":"C","kPa":101.3}
+{"t":"2026-08-23T06:02:11Z","event":"loaded","id":"FLR-001","kg":1200.5,"rack":"A1"}
+{"t":"2026-08-23T06:07:44Z","event":"loaded","id":"YST-042","kg":4.2,"rack":"B2"}
+{"t":"2026-08-23T06:11:02Z","event":"loaded","id":"CIN-007","kg":36,"rack":"B4"}
+{"t":"2026-08-23T06:15:37Z","event":"loaded","id":"GLZ-019","kg":88.8,"rack":"C1"}
+{"t":"2026-08-23T06:19:20Z","event":"crumb-sweep","crumbsFound":0,"verdict":"spotless"}
+{"t":"2026-08-23T06:21:09Z","event":"hatch-sealed","by":"Quartermaster P. Brioche","torqueNm":42}

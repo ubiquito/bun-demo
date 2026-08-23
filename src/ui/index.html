@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <title>Oven-1 · Mission Control</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script type="module" src="./app.js"></script>
+  </head>
+  <body>
+    <div class="starfield" aria-hidden="true"></div>
+
+    <header class="masthead">
+      <div class="brand">
+        <svg class="emblem" viewBox="0 0 48 48" aria-hidden="true">
+          <ellipse cx="24" cy="24" rx="21" ry="8" fill="none" stroke="var(--sky)" stroke-width="1.4" transform="rotate(-18 24 24)" opacity="0.75" />
+          <circle cx="24" cy="24" r="9" fill="var(--caramel)" />
+          <path d="M18.5 22.5 q5.5 -4.5 11 0" stroke="var(--star)" stroke-width="1.6" fill="none" stroke-linecap="round" />
+          <circle cx="41" cy="16" r="1.7" fill="var(--glow)" />
+        </svg>
+        <div>
+          <h1>ORBITAL BAKERY <span class="sep" aria-hidden="true">—</span> MISSION CONTROL</h1>
+          <p class="tagline">Oven-1 · 1,400,000 fresh buns bound for the outer colonies · reactor: Bun 1.4</p>
+        </div>
+      </div>
+      <div class="status-strip">
+        <p class="ship-line mono" aria-live="polite">
+          <span class="link-dot" id="link-dot" title="telemetry link"></span>
+          <span id="ship-line">hailing the ship…</span>
+        </p>
+        <ul class="deck-dots" id="deck-dots" aria-label="Deck status"></ul>
+      </div>
+    </header>
+
+    <main class="deck-grid">
+      <!-- Telemetry — always live, fed by the /ws telemetry topic -->
+      <section class="panel span-12 telemetry-panel" aria-label="Live telemetry">
+        <div class="panel-head">
+          <h2 class="deck-label">Telemetry · live feed</h2>
+          <p class="pendings mono" id="pendings">pending — awaiting first frame</p>
+        </div>
+        <div class="tele-grid">
+          <div class="tele-cell">
+            <div class="tele-read">
+              <span class="tele-name">resident set</span>
+              <output class="mono tele-value" id="read-rss" style="color: var(--glow)">—</output>
+            </div>
+            <canvas class="spark" id="spark-rss" aria-label="RSS sparkline"></canvas>
+          </div>
+          <div class="tele-cell">
+            <div class="tele-read">
+              <span class="tele-name">event-loop lag</span>
+              <output class="mono tele-value" id="read-lag" style="color: var(--sky)">—</output>
+            </div>
+            <canvas class="spark" id="spark-lag" aria-label="Event-loop lag sparkline"></canvas>
+          </div>
+          <div class="tele-cell">
+            <div class="tele-read">
+              <span class="tele-name">requests / s</span>
+              <output class="mono tele-value" id="read-rps" style="color: var(--mint)">—</output>
+            </div>
+            <canvas class="spark" id="spark-rps" aria-label="Requests per second sparkline"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- Photon Oven — Bun.Image -->
+      <section class="panel span-7" data-deck="photon-oven">
+        <div class="panel-head">
+          <h2 class="deck-label">Photon Oven</h2>
+          <span class="deck-note mono" data-note="photonOven"></span>
+        </div>
+        <p class="panel-brief">
+          <code>Bun.Image</code> bakes one procedural nebula into every format the colonies accept —
+          plus a placeholder small enough to ship inside the HTML itself.
+        </p>
+        <div class="controls">
+          <button class="btn" id="bake-btn">Bake</button>
+        </div>
+        <div class="result" id="oven-out" aria-live="polite"></div>
+      </section>
+
+      <!-- Observation Deck — Bun.WebView -->
+      <section class="panel span-5" data-deck="observation-deck">
+        <div class="panel-head">
+          <h2 class="deck-label">Observation Deck</h2>
+          <span class="deck-note mono" data-note="observationDeck"></span>
+        </div>
+        <p class="panel-brief">
+          <code>Bun.WebView</code> turns the ship's camera on itself: a headless browser, inside the
+          runtime, photographing this very dashboard.
+        </p>
+        <div class="controls">
+          <button class="btn" id="snap-btn">Photograph the ship</button>
+        </div>
+        <div class="result" id="obs-out" aria-live="polite"></div>
+      </section>
+
+      <!-- Comms Bay — Bun.markdown -->
+      <section class="panel span-12" data-deck="comms">
+        <div class="panel-head">
+          <h2 class="deck-label">Comms Bay</h2>
+          <span class="deck-note mono" data-note="commsBay"></span>
+        </div>
+        <p class="panel-brief">
+          <code>Bun.markdown</code> renders as you type — the same transmission as HTML for the
+          colonies and ANSI for the flight recorder.
+        </p>
+        <div class="comms-grid">
+          <div class="comms-col">
+            <label class="field-label" for="comms-src">transmission · markdown</label>
+            <textarea id="comms-src" class="mono" rows="9" spellcheck="false"># Mission Log — Sol 217
+The **starter** is alive, hydration steady at *82%*.
+
+- Proof drawer: `nominal`
+- Crumb radar: **clear**
+&gt; Ground control: send more cardamom.</textarea>
+          </div>
+          <div class="comms-col">
+            <span class="field-label">html · for the colonies</span>
+            <div class="prose" id="comms-html" aria-live="polite"></div>
+            <p class="micro mono" id="comms-html-us"></p>
+          </div>
+          <div class="comms-col">
+            <span class="field-label">ansi · for the flight recorder</span>
+            <pre class="ansi-box" id="comms-ansi" aria-live="polite"></pre>
+            <p class="micro mono" id="comms-ansi-us"></p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Chronometer — Bun.cron -->
+      <section class="panel span-5" data-deck="chronometer">
+        <div class="panel-head">
+          <h2 class="deck-label">Chronometer</h2>
+          <span class="deck-note mono" data-note="chronometer"></span>
+        </div>
+        <p class="panel-brief">
+          <code>Bun.cron.parse</code> reads the bake schedule and names the next launch windows.
+        </p>
+        <label class="field-label" for="cron-expr">schedule · cron expression</label>
+        <input id="cron-expr" class="mono cron-input" value="*/15 * * * *" spellcheck="false" autocomplete="off" />
+        <div class="result" id="cron-out" aria-live="polite"></div>
+      </section>
+
+      <!-- Engine Room — Bun.Terminal -->
+      <section class="panel span-7" data-deck="engine-room">
+        <div class="panel-head">
+          <h2 class="deck-label">Engine Room</h2>
+          <span class="deck-note mono" data-note="engineRoom"></span>
+        </div>
+        <p class="panel-brief">
+          <code>Bun.Terminal</code> — a real PTY on the server, streamed raw over the shared WebSocket.
+        </p>
+        <div class="controls">
+          <button class="btn" id="ignite-btn">Ignite</button>
+          <span class="micro mono" id="engine-state" aria-live="polite">engines cold</span>
+        </div>
+        <div class="term-screen" id="term-screen" role="log" aria-label="Engine terminal output" tabindex="0"></div>
+        <div class="term-input-row">
+          <span class="term-prompt mono" aria-hidden="true">›</span>
+          <input id="term-input" class="mono term-input" aria-label="Terminal input, press Enter to send"
+            placeholder="type a command, press Enter" autocomplete="off" spellcheck="false" disabled />
+        </div>
+      </section>
+
+      <!-- Cargo Hold — Bun.Archive + data dialects -->
+      <section class="panel span-6" data-deck="cargo-hold">
+        <div class="panel-head">
+          <h2 class="deck-label">Cargo Hold</h2>
+          <span class="deck-note mono" data-note="cargoHold"></span>
+        </div>
+        <p class="panel-brief">
+          One manifest, six dialects — JSON5, JSONC, JSONL, XML, YAML, TOML — then
+          <code>Bun.Archive</code> packs it in tar and proves the roundtrip.
+        </p>
+        <div class="controls">
+          <button class="btn" id="cargo-btn">Inspect cargo</button>
+        </div>
+        <div class="result" id="cargo-out" aria-live="polite"></div>
+      </section>
+
+      <!-- Reactor — throughput + startup race -->
+      <section class="panel span-6" data-deck="reactor">
+        <div class="panel-head">
+          <h2 class="deck-label">Reactor</h2>
+          <span class="deck-note mono" data-note="reactor"></span>
+        </div>
+        <p class="panel-brief">
+          A short, honest, self-inflicted HTTP hurricane — and a cold-start drag race, measured on
+          this machine, right now.
+        </p>
+        <div class="controls">
+          <button class="btn" id="burst-btn">Burst</button>
+          <button class="btn btn-ghost" id="race-btn">Startup race</button>
+        </div>
+        <div class="result" id="burst-out" aria-live="polite"></div>
+        <div class="result" id="race-out" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <footer class="deck-foot">
+      <p class="mono">Oven-1 flight deck · zero dependencies, zero build step — one HTML import, served by Bun.serve</p>
+    </footer>
+  </body>
+</html>

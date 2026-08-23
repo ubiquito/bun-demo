@@ -1,0 +1,22 @@
+// ── CARGO MANIFEST · hold C · Oven-1 ─────────────────────────────
+// JSON5: JSON with its flight suit unzipped. Bare keys, single
+// quotes, hex, exponents — and nobody writes up a trailing comma.
+{
+  vessel: 'Oven-1',
+  hold: 'C',
+  revision: 3,
+  buns: 1.4e6, // the entire mission, in scientific notation
+  beaconChannel: 0x2a, // flight computers dream in base 16
+  stores: [
+    { id: 'FLR-001', item: 'stone-ground flour', kg: 1200.5, rack: 'A1', perishable: false, seal: { vacuum: false, tempC: 18 } },
+    { id: 'YST-042', item: 'starlight yeast',    kg: 4.2,    rack: 'B2', perishable: true,  seal: { vacuum: true,  tempC: 4 } },
+    { id: 'CIN-007', item: 'ceres cinnamon',     kg: 36,     rack: 'B4', perishable: false, seal: { vacuum: false, tempC: 18 } },
+    { id: 'GLZ-019', item: 'strawberry glaze',   kg: 88.8,   rack: 'C1', perishable: true,  seal: { vacuum: true,  tempC: 4 } },
+  ],
+  destinations: [
+    'Luna Colony',
+    'Ceres Relay',
+    'Europa Station', // last stop before the long dark
+  ],
+  bake: { temperatureC: 220, minutes: 14 },
+}

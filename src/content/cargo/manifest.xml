@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- CARGO MANIFEST · hold C · Oven-1 -->
+<!-- XML: the elder statesman of the bay. Attributes, elements,
+     and every value delivered exactly as written — as a string. -->
+<manifest vessel="Oven-1" hold="C" revision="3">
+  <buns>1400000</buns>
+  <beaconChannel>42</beaconChannel>
+  <store id="FLR-001" rack="A1" perishable="false">
+    <item>stone-ground flour</item>
+    <kg>1200.5</kg>
+    <seal vacuum="false" tempC="18"/>
+  </store>
+  <store id="YST-042" rack="B2" perishable="true">
+    <item>starlight yeast</item>
+    <kg>4.2</kg>
+    <seal vacuum="true" tempC="4"/>
+  </store>
+  <store id="CIN-007" rack="B4" perishable="false">
+    <item>ceres cinnamon</item>
+    <kg>36</kg>
+    <seal vacuum="false" tempC="18"/>
+  </store>
+  <store id="GLZ-019" rack="C1" perishable="true">
+    <item>strawberry glaze</item>
+    <kg>88.8</kg>
+    <seal vacuum="true" tempC="4"/>
+  </store>
+  <destination>Luna Colony</destination>
+  <destination>Ceres Relay</destination>
+  <destination>Europa Station</destination>
+  <bake temperatureC="220" minutes="14"/>
+</manifest>

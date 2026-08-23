@@ -1,0 +1,24 @@
+/*
+ * ── CARGO MANIFEST · hold C · Oven-1 ─────────────────────────────
+ * JSONC: strict JSON that finally lets the crew annotate the
+ * config. Comments and trailing commas; everything else by the book.
+ */
+{
+  "vessel": "Oven-1",
+  "hold": "C",
+  "revision": 3, // bumped after the cinnamon recount
+  "buns": 1400000,
+  "beaconChannel": 42,
+  "stores": [
+    // dry goods ride warm; perishables ride the cold racks
+    { "id": "FLR-001", "item": "stone-ground flour", "kg": 1200.5, "rack": "A1", "perishable": false, "seal": { "vacuum": false, "tempC": 18 } },
+    { "id": "YST-042", "item": "starlight yeast",    "kg": 4.2,    "rack": "B2", "perishable": true,  "seal": { "vacuum": true,  "tempC": 4 } },
+    { "id": "CIN-007", "item": "ceres cinnamon",     "kg": 36,     "rack": "B4", "perishable": false, "seal": { "vacuum": false, "tempC": 18 } },
+    { "id": "GLZ-019", "item": "strawberry glaze",   "kg": 88.8,   "rack": "C1", "perishable": true,  "seal": { "vacuum": true,  "tempC": 4 } },
+  ],
+  "destinations": ["Luna Colony", "Ceres Relay", "Europa Station"],
+  "bake": {
+    "temperatureC": 220,
+    "minutes": 14, // one minute per hundred thousand buns
+  },
+}

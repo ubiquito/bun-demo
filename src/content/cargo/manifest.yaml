@@ -1,0 +1,43 @@
+# ── CARGO MANIFEST · hold C · Oven-1 ─────────────────────────────
+# YAML 1.2: indentation as structure, anchors as memory. Define a
+# seal once (&dry, &cold), alias it (*) everywhere it recurs.
+vessel: Oven-1
+hold: C
+revision: 3
+buns: 1400000
+beaconChannel: 0x2A   # the core schema reads hex natively
+
+stores:
+  - id: FLR-001
+    item: stone-ground flour
+    kg: 1200.5
+    rack: A1
+    perishable: false
+    seal: &dry { vacuum: false, tempC: 18 }
+  - id: YST-042
+    item: starlight yeast
+    kg: 4.2
+    rack: B2
+    perishable: true
+    seal: &cold { vacuum: true, tempC: 4 }
+  - id: CIN-007
+    item: ceres cinnamon
+    kg: 36
+    rack: B4
+    perishable: false
+    seal: *dry            # same seal spec as the flour, by reference
+  - id: GLZ-019
+    item: strawberry glaze
+    kg: 88.8
+    rack: C1
+    perishable: true
+    seal: *cold
+
+destinations:
+  - Luna Colony
+  - Ceres Relay
+  - Europa Station
+
+bake:
+  temperatureC: 220
+  minutes: 14

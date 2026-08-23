@@ -1,0 +1,23 @@
+// Boarding pass for the Oven-1: open the hatch, and Mission Control is one
+// `bun start` away. The oven/bun image ships with the reactor preinstalled.
+{
+  "name": "Oven-1 Flight Deck",
+  "image": "oven/bun:1.4",
+
+  // Best-effort Chromium so the Observation Deck can open its shutters
+  // (oven/bun is Debian-based). If this fails, the deck idles gracefully.
+  "onCreateCommand": "apt-get update && apt-get install -y --no-install-recommends chromium fonts-dejavu-core || echo 'no chromium — Observation Deck will idle gracefully'",
+
+  "postCreateCommand": "bun install",
+
+  "forwardPorts": [1414],
+  "portsAttributes": {
+    "1414": { "label": "Mission Control" }
+  },
+
+  "customizations": {
+    "vscode": {
+      "extensions": ["oven.bun-vscode"]
+    }
+  }
+}

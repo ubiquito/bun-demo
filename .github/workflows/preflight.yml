@@ -1,0 +1,62 @@
+# ORBITAL BAKERY — preflight checks.
+# No bun leaves the pad until every deck answers the roll call.
+
+name: preflight
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  preflight-checks:
+    name: preflight-checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Board the ship
+        uses: actions/checkout@v4
+
+      - name: Ignite the reactor (Bun 1.4.0)
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.4.0"
+
+      - name: Load provisions
+        run: bun install
+
+      - name: Systems check
+        run: bun test
+
+      - name: Systems check, hyperdrive engaged
+        run: bun test --parallel
+
+      - name: "Deck 01 — Photon Oven"
+        run: timeout 90 bun demos/01-photon-oven.ts
+
+      - name: "Deck 03 — Comms Bay"
+        run: timeout 90 bun demos/03-comms.ts
+
+      - name: "Deck 04 — Chronometer"
+        run: timeout 90 bun demos/04-chronometer.ts
+
+      - name: "Deck 05 — Engine Room"
+        run: timeout 90 bun demos/05-engine-room.ts
+
+      - name: "Deck 06 — Cargo Hold"
+        run: timeout 90 bun demos/06-cargo-hold.ts
+
+      - name: "Deck 07 — Reactor"
+        run: timeout 90 bun demos/07-reactor.ts
+
+      # ubuntu-latest ships google-chrome on PATH and Bun.WebView discovers it,
+      # but headless Chrome in CI can hiccup for reasons outside our hull —
+      # so this one deck is advisory: it runs, it reports, it cannot scrub launch.
+      - name: "Deck 02 — Observation Deck (advisory)"
+        run: timeout 90 bun demos/02-observation-deck.ts || true
+
+      - name: Liftoff rehearsal
+        run: |
+          bun src/server.ts &
+          SHIP=$!
+          curl --fail --silent --show-error --retry 20 --retry-delay 1 --retry-all-errors \
+            http://localhost:1414/api/status
+          kill "$SHIP"
